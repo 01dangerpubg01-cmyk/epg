@@ -4,7 +4,20 @@ import requests
 
 url = os.environ["EPG_SOURCE_URL"]
 
-r = requests.get(url, timeout=120)
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0 Safari/537.36",
+    "Accept": "*/*"
+}
+
+r = requests.get(
+    url,
+    headers=headers,
+    timeout=120,
+    allow_redirects=True
+)
+
+print("Status:", r.status_code)
+
 r.raise_for_status()
 
 with gzip.open("epg.xml.gz", "wb", compresslevel=9) as gz:
