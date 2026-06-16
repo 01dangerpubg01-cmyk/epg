@@ -1,5 +1,4 @@
 import os
-import gzip
 import requests
 
 url = os.environ["EPG_SOURCE_URL"]
@@ -9,18 +8,18 @@ headers = {
     "Accept": "*/*"
 }
 
-r = requests.get(
+response = requests.get(
     url,
     headers=headers,
     timeout=120,
     allow_redirects=True
 )
 
-print("Status:", r.status_code)
+print("Status Code:", response.status_code)
 
-r.raise_for_status()
+response.raise_for_status()
 
-with gzip.open("epg.xml.gz", "wb", compresslevel=9) as gz:
-    gz.write(r.content)
+with open("epg.xml", "wb") as f:
+    f.write(response.content)
 
-print("EPG Updated")
+print("EPG saved as epg.xml")
