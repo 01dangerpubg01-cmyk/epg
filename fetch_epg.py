@@ -1,25 +1,29 @@
 import os
 import requests
+import gzip
+import io
 
 url = os.environ["EPG_SOURCE_URL"]
 
 headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0 Safari/537.36",
-    "Accept": "*/*"
+    "User-Agent": "Mozilla/5.0"
 }
 
-response = requests.get(
-    url,
-    headers=headers,
-    timeout=120,
-    allow_redirects=True
-)
+r = requests.get(url, headers=headers, timeout=120)
+r.raise_for_status()
 
-print("Status Code:", response.status_code)
+data = r.content
 
-response.raise_for_status()
+# gzip auto extract
+if data[:2] == b"\x1f\x8b":
+    data = gzip.GzipFile(fileobj=io.BytesIO(data)).read()
 
-with open("epg.xml", "wb") as f:
-    f.write(response.content)
+text = data.decode("utf-8", errors="ignore")
 
-print("EPG saved as epg.xml")
+if "<tv" not in text or "<channel" not in text:
+    raise Exception("Invalid XMLTV file")
+
+with open("epg.xml", "w", encoding="utf-8") as f:
+    f.write(text)
+
+print("Valid XMLTV saved")
