@@ -1,15 +1,15 @@
 import os
+import io
+import gzip
 import requests
 
 url = os.environ["EPG_SOURCE_URL"]
 
 headers = {
-    "User-Agent": "Mozilla/5.0",
-    "Accept": "*/*"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate"
 }
-
-print("URL exists:", bool(url))
-print("URL length:", len(url))
 
 r = requests.get(
     url,
@@ -18,10 +18,31 @@ r = requests.get(
     allow_redirects=True
 )
 
-print("Status:", r.status_code)
-print(r.text[:300])
+print("HTTP Status:", r.status_code)
 
 r.raise_for_status()
 
-with open("epg.xml", "wb") as f:
-    f.write(r.content)
+data = r.content
+
+# gzip magic bytes check
+if data[:2] == b"\x1f\x8b":
+    print("GZIP detected, extracting...")
+    data = gzip.GzipFile(
+        fileobj=io.BytesIO(data)
+    ).read()
+
+# XML validation
+text = data.decode("utf-8", errors="ignore")
+
+if "<tv" not in text:
+    raise Exception("Invalid XMLTV content received")
+
+# Save plain XML
+with open("epg.xml", "w", encoding="utf-8") as f:
+    f.write(text)
+
+# Also save compressed version
+with gzip.open("epg.xml.gz", "wb") as gz:
+    gz.write(text.encode("utf-8"))
+
+print("EPG Updated Successfully")
