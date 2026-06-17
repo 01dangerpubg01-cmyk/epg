@@ -2,15 +2,11 @@ name: EPG Auto Update
 
 on:
 schedule:
-- cron: "*/10 * * * *"
+- cron: '*/10 * * * *'
 workflow_dispatch:
 
 permissions:
 contents: write
-
-concurrency:
-group: epg-update
-cancel-in-progress: false
 
 jobs:
 update:
@@ -24,22 +20,15 @@ steps:
   - name: Setup Python
     uses: actions/setup-python@v5
     with:
-      python-version: "3.11"
+      python-version: '3.11'
 
   - name: Install Requests
-    run: |
-      python -m pip install --upgrade pip
-      pip install requests
+    run: pip install requests
 
   - name: Download EPG
     env:
       EPG_SOURCE_URL: ${{ secrets.EPG_SOURCE_URL }}
-    run: |
-      for i in 1 2 3; do
-        python fetch_epg.py && break
-        echo "Retry $i..."
-        sleep 15
-      done
+    run: python fetch_epg.py
 
   - name: Commit Changes
     run: |
@@ -50,9 +39,8 @@ steps:
 
       if git diff --staged --quiet; then
         echo "No changes"
-        exit 0
+      else
+        git commit -m "EPG Update"
+        git push
       fi
-
-      git commit -m "EPG Update $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-      git push
 
